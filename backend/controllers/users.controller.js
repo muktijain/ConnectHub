@@ -95,6 +95,10 @@ const getUserHistory = async (req, res) => {
 const addToHistory = async (req, res) => {
   const {token, meeting_code} = req.body;
 
+  if(!token || !meeting_code) {
+    return res.status(httpStatus.BAD_REQUEST).json({ message: "Credentials are required !" });
+  }
+  
   try {
     const user = await User.findOne({ token: token });
 
