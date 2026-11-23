@@ -5,7 +5,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
 
-import connectToSocket from "./controllers/socketManager.js";
+import {connectToSocket} from "./controllers/socketManager.js";
 import {login, register} from "./controllers/users.controller.js";
 import userRoutes from "./routes/users.route.js";
 
@@ -25,7 +25,9 @@ app.use("/api/v1/users", userRoutes);
 
 const startServer = async () => {
     try {
-        server.listen(app.get("port"), () => {
+        // server.listen(app.get("port"), () => {
+            server.listen(5000, '0.0.0.0', () => {
+
             console.log("Server is running on port " + app.get("port"));
         });
         await mongoose.connect(MONGO_URL);

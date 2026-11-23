@@ -1,6 +1,12 @@
 import { Server } from "socket.io";
 
-const connectToSocket = (server) => {
+
+const connections = {};   
+const messages = {};      
+const timeOnline = {}; 
+
+
+export const connectToSocket = (server) => {
     const io = new Server(server , {
         cors : {
             origin: "*", // Allow requests from any origin (for development purposes)
@@ -11,7 +17,8 @@ const connectToSocket = (server) => {
     });
 
     io.on("connection", (socket) => {
-           // Fired when a client wants to join a video call room identified by `path`.
+          
+        console.log("Client connected"); // Fired when a client wants to join a video call room identified by `path`.
         socket.on("join_call", (path) => {
             if(connections[path] === undefined){ 
                 connections[path] = [];
@@ -23,14 +30,16 @@ const connectToSocket = (server) => {
              // Notify every client in the room that a new user has joined,
             // passing the new client's socket ID and the updated connections list.
             for(let a = 0; a < connections[path].length; a++){ 
-                io.to(connnections[path][a]).emit("user-joined", socket.id, connections[path]);
+                io.to(connections[path][a]).emit("user-joined", socket.id, connections[path]);
             }
 
             // If this room already has chat history, replay it for the newly joined client.
             if(messages[path] !== undefined){          
                 for (let a=0; a < messages[path].length; ++a){
-                    io.to(socket.id).emit("chat-message", messages[path][a]["data"],
-                    messages[path][a]["sender"], messages[path][a]["socket-id-sender"]
+                    io.to(socket.id).emit("chat-message",
+                        messages[path][a]["sender"],
+                        messages[path][a]["data"],
+                        messages[path][a]["socket-id-sender"]
                     );
                 }
         }
@@ -45,7 +54,7 @@ const connectToSocket = (server) => {
 
         // Receives a chat message from a client, stores it, and broadcasts it
         // to all other clients in the same room.
-        socket.on("chat-message", (sender, data) => {
+        socket.on("chat-message", ( data, sender) => {
              
             const [matchingRoom, found] = Object.entries(connections)   //check which room sender is in and send the message to all clients in that room
             .reduce(([room, isFound], [roomKey, roomValue]) => {
@@ -63,11 +72,11 @@ const connectToSocket = (server) => {
 
 
                 // Persist the message so late-joining clients can receive history
-                messages[matchingRoom].push({'data': data, 'sender': sender, 'socket-id-sender': socket.id}); //store the message in the messages object with the room key and the message data, sender, and socket ID of the sender
-                console.log('message stored in room ' + sender + ': ' + data);
+                messages[matchingRoom].push({'sender': sender,'data': data, 'socket-id-sender': socket.id}); //store the message in the messages object with the room key and the message data, sender, and socket ID of the sender
+                console.log('message stored in room ' + matchingRoom + ': ' + sender + ' sent by : ' + data);
 
                 connections[matchingRoom].forEach(ele => {
-                    io.to(ele).emit("chat-message", data, sender, socket.id) //send the message to all clients in the same room
+                    io.to(ele).emit("chat-message",  sender, data, socket.id) //send the message to all clients in the same room
                 })
                 }
         });
@@ -106,11 +115,8 @@ const connectToSocket = (server) => {
                     }
             }
         }
-    }); //close io.on("connection")
+        });
+        });
 
     return io;
-})
-};
-
-
-export default connectToSocket
+}
